@@ -3,6 +3,8 @@ import mongoose from 'mongoose';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import profileRoutes from './routes/profile.js';
+import chatRoutes from './routes/chat.js';
+import authRoutes from './routes/auth.js';
 
 // Load environment variables from .env file
 dotenv.config();
@@ -16,6 +18,8 @@ app.use(express.json());
 
 // Custom Routes
 app.use('/api/profile', profileRoutes);
+app.use('/api/chat', chatRoutes);
+app.use('/api/auth', authRoutes);
 
 // Base route for testing
 app.get('/', (req, res) => {

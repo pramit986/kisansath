@@ -10,8 +10,6 @@ const QUICK_QUESTIONS = [
   { emoji: '🌦️', text: 'Weather affecting my crop' },
 ];
 
-const CLAUDE_API_KEY = import.meta.env.VITE_CLAUDE_API_KEY || '';
-
 export default function CropDoctorPage({ profile }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
@@ -41,14 +39,15 @@ export default function CropDoctorPage({ profile }) {
 - Soil Type: ${profile.soilType}
 
 Rules:
-- Always give practical, actionable advice
-- Keep responses short (3-5 lines max)
-- Use simple English, avoid jargon
-- Be encouraging and empathetic
-- Add 1 relevant emoji per response
-- If serious disease/pest, recommend consulting local agricultural officer
-- Always relate advice to their specific crop (${profile.crop}) and location (${profile.village}, ${profile.state})
-- Use Indian farming context, reference Indian crops, seasons, and practices`;
+- Respond in the same language the farmer uses (English, Hindi, Marathi, etc.).
+- Always give practical, actionable advice.
+- Keep responses short (3-5 lines max).
+- Use simple language, avoid jargon.
+- Be encouraging and empathetic.
+- Add 1 relevant emoji per response.
+- If serious disease/pest, recommend consulting local agricultural officer.
+- Always relate advice to their specific crop (${profile.crop}) and location (${profile.village}, ${profile.state}).
+- Use Indian farming context, reference Indian crops, seasons, and practices.`;
 
   const sendMessage = async (text) => {
     if (!text.trim()) return;
@@ -65,47 +64,32 @@ Rules:
     localStorage.setItem('kisansathi_recent_questions', JSON.stringify(newRecent));
 
     try {
-      if (!CLAUDE_API_KEY) {
-        await new Promise(r => setTimeout(r, 1500));
-        const fallbacks = {
-          'yellow': `🍋 Yellowing leaves in ${profile.crop} often indicate nitrogen deficiency or iron deficiency. For ${profile.soilType} soil in ${profile.state}, apply urea top dressing (20-25 kg/acre) and monitor results over 7-10 days. If new leaves are yellow with green veins, it's iron deficiency — apply ferrous sulfate foliar spray.`,
-          'irrigat': `💧 For your ${profile.acres}-acre ${profile.crop} farm, you need approximately ${Math.round(1500 * profile.acres)} litres per day during this stage. In ${profile.village}'s climate, water early morning (6-8 AM) to reduce evaporation losses. Check if soil is moist 6 inches deep before irrigating again.`,
-          'pest': `🐛 Best approach for pest control on ${profile.crop}: start with pest monitoring (inspect 10 plants per acre). Use chemical control only when pest count exceeds economic threshold. Contact your local agricultural officer for free spray recommendations.`,
-          'fertiliz': `🌿 For ${profile.crop} on ${profile.acres} acres with ${profile.soilType} soil: apply NPK in the ratio recommended for your growth stage. This week, you'll need approximately ${Math.round(2.5 * profile.acres)}kg Nitrogen, ${Math.round(1.2 * profile.acres)}kg Phosphorus, ${Math.round(1.5 * profile.acres)}kg Potassium. Apply before or during irrigation for best results.`,
-          'harvest': `🌾 ${profile.crop} harvest timing depends on maturity indicators. Look for visual signs: grain color change, dry leaves at bottom. After harvest, dry to 12-14% moisture before storage. Check mandi prices on the Prices tab to pick the best selling time!`,
-          'weather': `🌦️ Weather conditions in ${profile.village} today suggest moderate farming activity. If temperature is above 35°C, water in evening. Avoid pesticide spraying if wind is strong. High humidity + warm weather = higher fungal disease risk for ${profile.crop}.`,
-        };
-        const key = Object.keys(fallbacks).find(k => text.toLowerCase().includes(k));
-        const aiContent = key ? fallbacks[key] : `🌱 For your ${profile.crop} farm in ${profile.village}, I'd recommend monitoring crop health regularly. Based on your ${profile.soilType} soil type and ${profile.acres} acres, focus on proper irrigation timing and balanced fertilization. Feel free to ask specific questions!`;
-        const aiMsg = { role: 'assistant', content: aiContent, time: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) };
-        const final = [...updatedMessages, aiMsg];
-        setMessages(final);
-        saveMessages(final);
-      } else {
-        const history = updatedMessages.slice(-10).map(m => ({ role: m.role, content: m.content }));
-        const response = await fetch('https://api.anthropic.com/v1/messages', {
-          method: 'POST',
-          headers: {
-            'x-api-key': CLAUDE_API_KEY,
-            'anthropic-version': '2023-06-01',
-            'content-type': 'application/json',
-            'anthropic-dangerous-direct-browser-access': 'true',
-          },
-          body: JSON.stringify({
-            model: 'claude-sonnet-4-5',
-            max_tokens: 300,
-            system: getSystemPrompt(),
-            messages: history,
-          }),
-        });
-        if (!response.ok) throw new Error('API error');
-        const data = await response.json();
-        const aiContent = data.content?.[0]?.text || 'I apologize, I could not generate a response.';
-        const aiMsg = { role: 'assistant', content: aiContent, time: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) };
-        const final = [...updatedMessages, aiMsg];
-        setMessages(final);
-        saveMessages(final);
-      }
+      const history = updatedMessages.slice(-10).map(m => ({ role: m.role, content: m.content }));
+      
+      // Add system prompt as the first message
+      const payload = [
+        { role: 'system', content: getSystemPrompt() },
+        ...history
+      ];
+
+      // Call our secure backend relay instead of direct API
+      const response = await fetch('http://127.0.0.1:5000/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messages: payload
+        }),
+      });
+
+      if (!response.ok) throw new Error('Backend API error');
+      const data = await response.json();
+      const aiContent = data.choices?.[0]?.message?.content || 'I apologize, I could not generate a response.';
+      const aiMsg = { role: 'assistant', content: aiContent, time: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) };
+      const final = [...updatedMessages, aiMsg];
+      setMessages(final);
+      saveMessages(final);
     } catch (err) {
       const errorMsg = {
         role: 'assistant',
@@ -191,14 +175,12 @@ Rules:
             ))}
           </div>
 
-          {!CLAUDE_API_KEY && (
-            <div className="mt-4 p-3 rounded-2xl flex items-start gap-2" style={{ background: '#FFFBEB', border: '1px solid #FDE68A' }}>
-              <AlertCircle size={14} className="text-amber-600 mt-0.5 flex-shrink-0" />
-              <p className="text-xs text-amber-700">
-                Add <strong>VITE_CLAUDE_API_KEY</strong> to your .env file to enable full Claude AI responses. Demo mode is active.
-              </p>
-            </div>
-          )}
+          <div className="mt-4 p-3 rounded-2xl flex items-start gap-2" style={{ background: '#F0FDF4', border: '1px solid #BBF7D0' }}>
+            <Info size={14} className="text-green-600 mt-0.5 flex-shrink-0" />
+            <p className="text-xs text-green-700">
+              Sarvam AI is active and providing localized farming advice.
+            </p>
+          </div>
         </div>
 
         {/* Right Panel — Chat */}

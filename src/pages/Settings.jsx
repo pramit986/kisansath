@@ -4,15 +4,29 @@ import { X, ChevronRight, Trash2, Globe, Info, Edit3, Save } from 'lucide-react'
 const CROPS = ['Rice', 'Wheat', 'Cotton', 'Sugarcane', 'Vegetables', 'Soybean', 'Maize'];
 const SOIL_TYPES = ['Red', 'Black', 'Alluvial', 'Sandy'];
 
-export default function SettingsDrawer({ profile, onClose, onUpdate, onClearData }) {
-  const [isEditing, setIsEditing] = useState(false);
-  const [editData, setEditData] = useState({ ...profile });
-  const [showClearConfirm, setShowClearConfirm] = useState(false);
+export default function SettingsDrawer({ profile, onClose, onUpdate, onLogout }) {
+  const [isEditing, setIsEditing] = useState(!profile); // Auto-edit if profile missing
+  const [editData, setEditData] = useState(profile || {
+    name: '',
+    village: '',
+    state: '',
+    crop: '',
+    acres: 0,
+    soilType: '',
+    challenges: []
+  });
 
   const handleSave = () => {
+    // Strict validation for vacancy
+    if (!editData.name || !editData.village || !editData.state || !editData.crop || !editData.soilType || editData.acres <= 0) {
+      alert("Please fill in ALL farming details to continue.");
+      return;
+    }
     onUpdate(editData);
     setIsEditing(false);
   };
+
+  const username = localStorage.getItem('kisansathi_username') || 'Farmer';
 
   return (
     <>
@@ -35,6 +49,29 @@ export default function SettingsDrawer({ profile, onClose, onUpdate, onClearData
         </div>
 
         <div className="p-5 space-y-4">
+          {/* Account Section */}
+          <div className="card">
+            <h3 className="font-bold text-text-primary mb-3">🛡️ Account</h3>
+            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-2xl mb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center text-green-700 font-bold">
+                  {username[0].toUpperCase()}
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-text-primary">{username}</p>
+                  <p className="text-xs text-text-secondary">Verified Farmer</p>
+                </div>
+              </div>
+              <button 
+                id="logout-btn"
+                onClick={onLogout}
+                className="text-xs font-bold text-red-600 px-3 py-1.5 rounded-xl border border-red-100 hover:bg-red-50 transition-all"
+              >
+                Logout
+              </button>
+            </div>
+          </div>
+
           {/* Profile Section */}
           <div className="card">
             <div className="flex items-center justify-between mb-4">
@@ -50,7 +87,7 @@ export default function SettingsDrawer({ profile, onClose, onUpdate, onClearData
               )}
             </div>
 
-            {!isEditing ? (
+            {!isEditing && profile ? (
               <div className="space-y-2">
                 {[
                   { label: 'Name', value: profile.name, emoji: '👤' },
@@ -65,6 +102,13 @@ export default function SettingsDrawer({ profile, onClose, onUpdate, onClearData
                     <span className="text-sm font-semibold text-text-primary">{value}</span>
                   </div>
                 ))}
+              </div>
+            ) : !isEditing ? (
+              <div className="text-center py-8">
+                <div className="text-4xl mb-3">🚜</div>
+                <p className="text-sm font-bold text-gray-900">Farm Not Setup</p>
+                <p className="text-xs text-gray-500 mt-1">Please enter your details to get started.</p>
+                <button onClick={() => setIsEditing(true)} className="mt-4 text-sm font-bold text-green-700">Set Up Profile</button>
               </div>
             ) : (
               <div className="space-y-3">
@@ -164,33 +208,6 @@ export default function SettingsDrawer({ profile, onClose, onUpdate, onClearData
                 </div>
               ))}
             </div>
-          </div>
-
-          {/* Danger Zone */}
-          <div className="card" style={{ border: '1.5px solid #FEE2E2' }}>
-            <h3 className="font-bold mb-3" style={{ color: '#DC2626' }}>⚠️ Danger Zone</h3>
-            {!showClearConfirm ? (
-              <button
-                id="clear-data-btn"
-                onClick={() => setShowClearConfirm(true)}
-                className="flex items-center gap-2 text-sm font-semibold px-4 py-3 rounded-xl w-full"
-                style={{ background: '#FEF2F2', color: '#DC2626' }}
-              >
-                <Trash2 size={16} /> Clear All Data & Start Over
-              </button>
-            ) : (
-              <div className="p-3 rounded-xl" style={{ background: '#FEF2F2' }}>
-                <p className="text-sm font-semibold text-red-700 mb-3">Are you sure? All your data, chat history, and settings will be permanently deleted.</p>
-                <div className="flex gap-2">
-                  <button id="confirm-clear" onClick={onClearData} className="flex-1 py-2 rounded-xl text-sm font-bold text-white" style={{ background: '#DC2626' }}>
-                    Yes, Clear All
-                  </button>
-                  <button id="cancel-clear" onClick={() => setShowClearConfirm(false)} className="flex-1 py-2 rounded-xl text-sm font-bold" style={{ background: '#F3F4F6', color: '#6B7280' }}>
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
 
           <div className="text-center py-4">

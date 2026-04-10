@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, RefreshCw, Droplets, Wind, Eye } from 'lucide-react';
+import { Settings, RefreshCw, Droplets, Wind, Eye, ArrowRight } from 'lucide-react';
 import { getDailyTip } from '../data/farmingTips';
 import { SkeletonCard, SkeletonText } from '../components/SkeletonCard';
 
@@ -66,22 +66,23 @@ export default function HomePage({ profile, onOpenSettings }) {
   const [weatherError, setWeatherError] = useState(false);
   const [recentQuestions, setRecentQuestions] = useState([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [showQuickOnboarding, setShowQuickOnboarding] = useState(false);
 
   const today = new Date();
   const dateStr = today.toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-  const tip = getDailyTip(profile.crop);
+  const tip = profile ? getDailyTip(profile.crop) : "Complete your profile to get personalized daily farming tips!";
 
   useEffect(() => {
     const q = JSON.parse(localStorage.getItem('kisansathi_recent_questions') || '[]');
     setRecentQuestions(q.slice(0, 3));
     fetchWeather();
-  }, []);
+  }, [profile]); // Refresh when profile is set
 
   const fetchWeather = async () => {
     setWeatherLoading(true);
     setWeatherError(false);
     try {
-      const city = encodeURIComponent(profile.village || 'Pune');
+      const city = encodeURIComponent(profile?.village || 'New Delhi');
       const res = await fetch(`https://wttr.in/${city}?format=j1`);
       if (!res.ok) throw new Error('Weather API error');
       const data = await res.json();
@@ -112,52 +113,84 @@ export default function HomePage({ profile, onOpenSettings }) {
   };
 
   const alert = getFarmingAlert(weather);
-  const daysToHarvest = getDaysToHarvest(profile.crop, profile.sowingDate);
+  const daysToHarvest = profile ? getDaysToHarvest(profile.crop, profile.sowingDate) : "-";
   const weatherScore = getWeatherScore(weather);
+  const userName = localStorage.getItem('kisansathi_username') || 'Farmer';
 
   return (
     <div style={{ background: '#F8F9FA', minHeight: '100vh' }}>
       {/* Top Header Bar */}
       <div
-        className="px-8 py-6 flex items-center justify-between relative overflow-hidden"
+        className="px-8 py-10 flex items-center justify-between relative overflow-hidden rounded-b-[40px] mb-8"
         style={{ background: 'linear-gradient(135deg, #1B4332 0%, #2D6A4F 60%, #40916C 100%)' }}
       >
         <div className="absolute -top-10 -right-10 w-48 h-48 rounded-full opacity-10" style={{ background: '#74C69D' }} />
         <div className="absolute top-0 right-32 w-24 h-24 rounded-full opacity-10" style={{ background: '#F4A261' }} />
         <div className="relative">
-          <p className="text-green-300 text-xs font-semibold uppercase tracking-widest mb-1">{dateStr}</p>
-          <h1 className="text-white text-3xl font-extrabold">
-            Jai Kisan, {profile.name.split(' ')[0]}! 🌾
+          <p className="text-green-300 text-xs font-bold uppercase tracking-widest mb-2">{dateStr}</p>
+          <h1 className="text-white text-4xl font-black tracking-tight">
+            Jai Kisan, {userName}! 🌾
           </h1>
-          <div className="flex items-center gap-2 mt-2">
-            <span className="px-3 py-1 rounded-full text-xs font-bold" style={{ background: 'rgba(255,255,255,0.2)', color: '#D1FAE5' }}>
-              🌱 {profile.crop}
-            </span>
-            <span className="px-3 py-1 rounded-full text-xs font-bold" style={{ background: 'rgba(255,255,255,0.2)', color: '#FEF3C7' }}>
-              📐 {profile.acres} acres
-            </span>
-            <span className="px-3 py-1 rounded-full text-xs font-bold" style={{ background: 'rgba(255,255,255,0.2)', color: '#E0E7FF' }}>
-              📍 {profile.village}, {profile.state}
-            </span>
+          <div className="flex items-center gap-3 mt-4">
+            {profile ? (
+              <>
+                <span className="px-4 py-1.5 rounded-full text-xs font-bold bg-white/10 text-green-50 backdrop-blur-md border border-white/10">
+                  🌱 {profile.crop}
+                </span>
+                <span className="px-4 py-1.5 rounded-full text-xs font-bold bg-white/10 text-amber-50 backdrop-blur-md border border-white/10">
+                  📍 {profile.village}
+                </span>
+              </>
+            ) : (
+              <span className="px-4 py-1.5 rounded-full text-xs font-bold bg-amber-500/20 text-amber-200 backdrop-blur-md border border-amber-500/30">
+                ⚠️ Account Incomplete
+              </span>
+            )}
           </div>
         </div>
         <button
           id="settings-btn"
           onClick={onOpenSettings}
-          className="relative z-10 w-11 h-11 rounded-2xl flex items-center justify-center transition-all"
-          style={{ background: 'rgba(255,255,255,0.2)' }}
+          className="relative z-10 w-14 h-14 rounded-3xl flex items-center justify-center transition-all hover:scale-105 active:scale-95 shadow-lg shadow-black/10"
+          style={{ background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(10px)' }}
         >
-          <Settings size={20} className="text-white" />
+          <Settings size={28} className="text-white" />
+          {!profile && <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full border-2 border-green-800 animate-pulse" />}
         </button>
       </div>
 
-      {/* Main Content Grid */}
-      <div className="p-8">
+      <div className="max-w-[1240px] mx-auto">
+        {/* Profile Completion Prompt */}
+        {!profile && (
+          <div className="card mb-8 p-0 overflow-hidden border-2 border-amber-100 bg-amber-50/30 animate-fade-in">
+            <div className="flex items-stretch">
+              <div className="bg-amber-100 p-8 flex items-center justify-center">
+                <span className="text-5xl">🚜</span>
+              </div>
+              <div className="p-8 flex-1">
+                <div className="flex items-center gap-2 mb-2 text-amber-700">
+                  <span className="font-black uppercase tracking-tighter text-sm">Action Required</span>
+                </div>
+                <h2 className="text-2xl font-black text-gray-900 mb-2">Complete Your Farming Profile</h2>
+                <p className="text-gray-600 font-medium mb-6 max-w-xl">
+                  Connect your crops to KisanSathi to unlock personalized AI advice, weather alerts for your village, and harvesting timelines.
+                </p>
+                <button 
+                  onClick={onOpenSettings}
+                  className="bg-amber-600 hover:bg-amber-700 text-white font-bold py-3 px-8 rounded-2xl transition-all shadow-lg shadow-amber-200 inline-flex items-center gap-2"
+                >
+                  Setup My Farm <ArrowRight size={18} />
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Quick Stats Row */}
-        <div className="grid grid-cols-4 gap-4 mb-6 animate-slide-up">
+        <div className="grid grid-cols-4 gap-6 mb-8 animate-slide-up">
           <StatCard id="stat-harvest" emoji="🌾" label="Days to Harvest" value={daysToHarvest} unit="days" color="#2D6A4F" bg="#F0FDF4" />
-          <StatCard id="stat-water" emoji="💧" label="Today's Water" value={getDailyWater(profile.crop, profile.acres)} unit="litres" color="#3B82F6" bg="#EFF6FF" />
-          <StatCard id="stat-fertilizer" emoji="🌿" label="Fertilizer Due" value={daysToHarvest % 14 < 3 ? 'Today' : `${14 - (daysToHarvest % 14)} days`} unit="" color="#F59E0B" bg="#FFFBEB" />
+          <StatCard id="stat-water" emoji="💧" label="Today's Water" value={profile ? getDailyWater(profile.crop, profile.acres) : "-"} unit="litres" color="#3B82F6" bg="#EFF6FF" />
+          <StatCard id="stat-fertilizer" emoji="🌿" label="Fertilizer Due" value={profile ? (daysToHarvest % 14 < 3 ? 'Today' : `${14 - (daysToHarvest % 14)} days`) : "-"} unit="" color="#F59E0B" bg="#FFFBEB" />
           <StatCard id="stat-weather-score" emoji="⭐" label="Weather Score" value={`${weatherScore}/10`} unit="" color="#8B5CF6" bg="#F5F3FF" />
         </div>
 
@@ -168,8 +201,8 @@ export default function HomePage({ profile, onOpenSettings }) {
             {/* Weather Card */}
             <div className="card animate-slide-up">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="font-bold text-text-primary text-lg">📍 {profile.village} — Live Weather</h2>
-                <button id="refresh-weather" onClick={handleRefresh} className="p-2 rounded-xl flex items-center gap-2 text-sm font-medium" style={{ background: '#F0FDF4', color: '#2D6A4F' }}>
+                <h2 className="font-bold text-text-primary text-lg">📍 {profile?.village || 'Location Not Set'} — Live Weather</h2>
+                <button id="refresh-weather" onClick={handleRefresh} disabled={!profile} className="p-2 rounded-xl flex items-center gap-2 text-sm font-medium" style={{ background: '#F0FDF4', color: '#2D6A4F', opacity: !profile ? 0.5 : 1 }}>
                   <RefreshCw size={14} className={isRefreshing ? 'animate-spin' : ''} />
                   Refresh
                 </button>
@@ -210,9 +243,9 @@ export default function HomePage({ profile, onOpenSettings }) {
               <h3 className="font-bold text-text-primary text-lg mb-4">Your Farm Overview 🏡</h3>
               <div className="grid grid-cols-3 gap-4">
                 {[
-                  { label: 'Crop', value: profile.crop, emoji: '🌱', desc: 'Primary crop' },
-                  { label: 'Total Area', value: `${profile.acres} acres`, emoji: '📐', desc: 'Farm size' },
-                  { label: 'Soil Type', value: `${profile.soilType} Soil`, emoji: '🌍', desc: 'Soil classification' },
+                  { label: 'Crop', value: profile?.crop || 'Not Set', emoji: '🌱', desc: 'Primary crop' },
+                  { label: 'Total Area', value: profile?.acres ? `${profile.acres} acres` : 'Not Set', emoji: '📐', desc: 'Farm size' },
+                  { label: 'Soil Type', value: profile?.soilType ? `${profile.soilType} Soil` : 'Not Set', emoji: '🌍', desc: 'Soil classification' },
                 ].map(({ label, value, emoji, desc }) => (
                   <div key={label} className="p-4 rounded-2xl text-center" style={{ background: '#F8F9FA' }}>
                     <div className="text-3xl mb-2">{emoji}</div>

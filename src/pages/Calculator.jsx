@@ -21,8 +21,8 @@ const CustomTooltip = ({ active, payload, label }) => {
 };
 
 export default function CalculatorPage({ profile }) {
-  const [crop, setCrop] = useState(profile.crop || 'Rice');
-  const [acres, setAcres] = useState(profile.acres || 1);
+  const [crop, setCrop] = useState(profile?.crop || '');
+  const [acres, setAcres] = useState(profile?.acres || 0);
   const [season, setSeason] = useState(getCurrentSeason());
   const [stage, setStage] = useState('Vegetative');
   const [results, setResults] = useState(null);

@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 
 const profileSchema = new mongoose.Schema({
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   name: { type: String, required: true },
   village: { type: String, required: true },
   state: { type: String, required: true },

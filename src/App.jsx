@@ -6,33 +6,41 @@ import CropDoctorPage from './pages/CropDoctor';
 import CalculatorPage from './pages/Calculator';
 import CalendarPage from './pages/Calendar';
 import MandiPricesPage from './pages/MandiPrices';
+import AuthPage from './pages/Auth';
 import SettingsDrawer from './pages/Settings';
 import axios from 'axios';
+import { Leaf } from 'lucide-react';
 
-const API_URL = 'http://localhost:5000/api/profile';
+const PROFILE_API = 'http://127.0.0.1:5000/api/profile';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('home');
+  const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
 
   useEffect(() => {
-    const fetchProfile = async () => {
+    const initAuth = async () => {
+      const token = localStorage.getItem('kisansathi_token');
       const userId = localStorage.getItem('kisansathi_userId');
-      if (userId) {
+      const username = localStorage.getItem('kisansathi_username');
+
+      if (token && userId) {
+        setUser({ token, userId, username });
         try {
-          const { data } = await axios.get(`${API_URL}/${userId}`);
+          // Fetch profile for this specific user
+          const { data } = await axios.get(`${PROFILE_API}/user/${userId}`);
           setProfile(data);
         } catch (err) {
-          console.error("Failed to load profile", err);
-          localStorage.removeItem('kisansathi_userId');
+          console.log("No profile found for user yet.");
+          setProfile(null);
         }
       }
       setIsLoading(false);
     };
-    fetchProfile();
+    initAuth();
 
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
@@ -44,10 +52,27 @@ export default function App() {
     };
   }, []);
 
+  const handleLoginSuccess = async (authData) => {
+    setUser({
+      token: authData.token,
+      userId: authData.userId,
+      username: authData.username
+    });
+    
+    // Check if user already has a profile in DB
+    try {
+      const { data } = await axios.get(`${PROFILE_API}/user/${authData.userId}`);
+      setProfile(data);
+    } catch (err) {
+      setProfile(null);
+    }
+  };
+
   const handleOnboardingComplete = async (newProfile) => {
     try {
-      const { data } = await axios.post(API_URL, newProfile);
-      localStorage.setItem('kisansathi_userId', data._id);
+      // Tie profile to user
+      const payload = { ...newProfile, userId: user.userId };
+      const { data } = await axios.post(PROFILE_API, payload);
       setProfile(data);
     } catch (err) {
       console.error("Error creating profile", err);
@@ -57,46 +82,46 @@ export default function App() {
 
   const handleProfileUpdate = async (updated) => {
     try {
-      const { data } = await axios.put(`${API_URL}/${profile._id}`, updated);
+      const { data } = await axios.put(`${PROFILE_API}/${profile._id}`, updated);
       setProfile(data);
     } catch (err) {
       console.error("Error updating profile", err);
     }
   };
 
-  const handleClearData = async () => {
-    if (profile?._id) {
-      try {
-        await axios.delete(`${API_URL}/${profile._id}`);
-      } catch (err) {
-        console.error("Error deleting profile", err);
-      }
-    }
+  const handleLogout = () => {
     localStorage.clear();
+    setUser(null);
     setProfile(null);
     setShowSettings(false);
   };
 
   if (isLoading) {
     return (
-      <div className="app-shell flex items-center justify-center">
+      <div className="app-shell flex items-center justify-center bg-[#F8F9FA]">
         <div className="text-center">
-          <div className="text-5xl mb-4">🌱</div>
-          <p className="text-primary font-semibold">Loading KisanSathi...</p>
+          <div className="w-16 h-16 bg-green-600 rounded-2xl mx-auto flex items-center justify-center mb-4 animate-bounce">
+            <Leaf size={32} className="text-white" />
+          </div>
+          <p className="text-green-800 font-bold text-lg">KisanSathi</p>
+          <p className="text-gray-400 text-sm">Preparing your fields...</p>
         </div>
       </div>
     );
   }
 
-  if (!profile) {
-    return (
-      <div className="app-shell">
-        <OnboardingPage onComplete={handleOnboardingComplete} />
-      </div>
-    );
+  // Phase 1: Not Logged In
+  if (!user) {
+    return <AuthPage onLoginSuccess={handleLoginSuccess} />;
   }
 
+  // Phase 2: Logged In (Show Dashboard Shell)
   const renderPage = () => {
+    if (!profile) {
+       // If no profile, we stay on Home but show the Onboarding prompt later
+       return <HomePage profile={null} onOpenSettings={() => setShowSettings(true)} />;
+    }
+
     switch (activeTab) {
       case 'home':
         return <HomePage profile={profile} onOpenSettings={() => setShowSettings(true)} />;
@@ -116,22 +141,25 @@ export default function App() {
   return (
     <div className="app-shell">
       <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
-      <main style={{ marginLeft: 240, minHeight: '100vh', background: '#F8F9FA' }}>
+      <main className="page-container">
         {!isOnline && (
           <div className="offline-banner">
             <span>📡</span> No internet connection — showing cached data
           </div>
         )}
-        {renderPage()}
+        <div className="page-inner">
+          {renderPage()}
+        </div>
       </main>
       {showSettings && (
         <SettingsDrawer
           profile={profile}
           onClose={() => setShowSettings(false)}
           onUpdate={handleProfileUpdate}
-          onClearData={handleClearData}
+          onLogout={handleLogout}
         />
       )}
     </div>
   );
 }
+
