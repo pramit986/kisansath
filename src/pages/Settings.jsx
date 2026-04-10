@@ -16,14 +16,26 @@ export default function SettingsDrawer({ profile, onClose, onUpdate, onLogout })
     challenges: []
   });
 
-  const handleSave = () => {
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSave = async () => {
     // Strict validation for vacancy
     if (!editData.name || !editData.village || !editData.state || !editData.crop || !editData.soilType || editData.acres <= 0) {
-      alert("Please fill in ALL farming details to continue.");
+      setError("Please fill in ALL farming details.");
       return;
     }
-    onUpdate(editData);
-    setIsEditing(false);
+
+    setIsSaving(true);
+    setError('');
+    try {
+      await onUpdate(editData);
+      setIsEditing(false);
+    } catch (err) {
+      setError("Failed to save. Check intermediate connection.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const username = localStorage.getItem('kisansathi_username') || 'Farmer';
@@ -81,8 +93,14 @@ export default function SettingsDrawer({ profile, onClose, onUpdate, onLogout })
                   <Edit3 size={14} /> Edit
                 </button>
               ) : (
-                <button id="save-profile" onClick={handleSave} className="flex items-center gap-1.5 text-sm font-semibold" style={{ color: '#059669' }}>
-                  <Save size={14} /> Save
+                <button 
+                  id="save-profile" 
+                  onClick={handleSave} 
+                  disabled={isSaving}
+                  className="flex items-center gap-1.5 text-sm font-semibold transition-opacity" 
+                  style={{ color: '#059669', opacity: isSaving ? 0.6 : 1 }}
+                >
+                  <Save size={14} /> {isSaving ? 'Saving...' : 'Save'}
                 </button>
               )}
             </div>
@@ -112,6 +130,11 @@ export default function SettingsDrawer({ profile, onClose, onUpdate, onLogout })
               </div>
             ) : (
               <div className="space-y-3">
+                {error && (
+                  <div className="p-3 bg-red-50 border border-red-100 rounded-xl text-xs text-red-600 font-bold animate-shake">
+                    ⚠️ {error}
+                  </div>
+                )}
                 <div>
                   <label className="input-label">Name</label>
                   <input id="edit-name" className="input-field" value={editData.name} onChange={e => setEditData(p => ({ ...p, name: e.target.value }))} />
@@ -119,6 +142,10 @@ export default function SettingsDrawer({ profile, onClose, onUpdate, onLogout })
                 <div>
                   <label className="input-label">Village/City</label>
                   <input id="edit-village" className="input-field" value={editData.village} onChange={e => setEditData(p => ({ ...p, village: e.target.value }))} />
+                </div>
+                <div>
+                  <label className="input-label">State</label>
+                  <input id="edit-state" className="input-field" value={editData.state} onChange={e => setEditData(p => ({ ...p, state: e.target.value }))} />
                 </div>
                 <div>
                   <label className="input-label">Primary Crop</label>

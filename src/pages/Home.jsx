@@ -129,7 +129,7 @@ export default function HomePage({ profile, onOpenSettings }) {
         <div className="relative">
           <p className="text-green-300 text-xs font-bold uppercase tracking-widest mb-2">{dateStr}</p>
           <h1 className="text-white text-4xl font-black tracking-tight">
-            Jai Kisan, {userName}! 🌾
+            Welcome, {userName}! 🌾
           </h1>
           <div className="flex items-center gap-3 mt-4">
             {profile ? (
@@ -175,7 +175,7 @@ export default function HomePage({ profile, onOpenSettings }) {
                 <p className="text-gray-600 font-medium mb-6 max-w-xl">
                   Connect your crops to KisanSathi to unlock personalized AI advice, weather alerts for your village, and harvesting timelines.
                 </p>
-                <button 
+                <button
                   onClick={onOpenSettings}
                   className="bg-amber-600 hover:bg-amber-700 text-white font-bold py-3 px-8 rounded-2xl transition-all shadow-lg shadow-amber-200 inline-flex items-center gap-2"
                 >
@@ -254,7 +254,7 @@ export default function HomePage({ profile, onOpenSettings }) {
                   </div>
                 ))}
               </div>
-              {profile.challenges && profile.challenges.length > 0 && (
+              {profile?.challenges && profile.challenges.length > 0 && (
                 <div className="mt-4 pt-4 border-t border-gray-100">
                   <p className="text-xs text-text-secondary font-semibold mb-2 uppercase tracking-wide">Focus Areas</p>
                   <div className="flex flex-wrap gap-2">

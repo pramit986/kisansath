@@ -68,24 +68,16 @@ export default function App() {
     }
   };
 
-  const handleOnboardingComplete = async (newProfile) => {
+  const handleProfileUpdate = async (profileUpdateData) => {
     try {
       // Tie profile to user
-      const payload = { ...newProfile, userId: user.userId };
+      const payload = { ...profileUpdateData, userId: user.userId };
       const { data } = await axios.post(PROFILE_API, payload);
       setProfile(data);
+      return data;
     } catch (err) {
-      console.error("Error creating profile", err);
-      alert("Failed to save profile. Is the backend running?");
-    }
-  };
-
-  const handleProfileUpdate = async (updated) => {
-    try {
-      const { data } = await axios.put(`${PROFILE_API}/${profile._id}`, updated);
-      setProfile(data);
-    } catch (err) {
-      console.error("Error updating profile", err);
+      console.error("Error saving profile", err);
+      throw err;
     }
   };
 

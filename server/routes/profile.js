@@ -5,17 +5,22 @@ import User from '../models/User.js';
 
 const router = express.Router();
 
-// Create profile
+// Create or Update profile
 router.post('/', async (req, res) => {
   try {
     const { userId, ...profileData } = req.body;
-    const profile = new Profile({ ...profileData, userId });
-    const savedProfile = await profile.save();
+    
+    // Find by userId and update, or create if not exists
+    const profile = await Profile.findOneAndUpdate(
+      { userId }, 
+      profileData, 
+      { upsert: true, new: true, runValidators: true }
+    );
 
-    // Link back to user
-    await User.findByIdAndUpdate(userId, { profileId: savedProfile._id });
+    // Link back to user (if not already linked)
+    await User.findByIdAndUpdate(userId, { profileId: profile._id });
 
-    res.status(201).json(savedProfile);
+    res.status(201).json(profile);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
