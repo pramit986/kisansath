@@ -1,0 +1,316 @@
+import React, { useState, useEffect } from 'react';
+import { Settings, RefreshCw, Droplets, Wind, Eye } from 'lucide-react';
+import { getDailyTip } from '../data/farmingTips';
+import { SkeletonCard, SkeletonText } from '../components/SkeletonCard';
+
+const getWeatherEmoji = (desc) => {
+  if (!desc) return '⛅';
+  const d = desc.toLowerCase();
+  if (d.includes('sunny') || d.includes('clear')) return '☀️';
+  if (d.includes('partly')) return '⛅';
+  if (d.includes('cloud')) return '☁️';
+  if (d.includes('rain') || d.includes('drizzle')) return '🌧️';
+  if (d.includes('thunder') || d.includes('storm')) return '⛈️';
+  if (d.includes('fog') || d.includes('mist')) return '🌫️';
+  if (d.includes('haze')) return '😶‍🌫️';
+  if (d.includes('snow')) return '🌨️';
+  if (d.includes('wind')) return '💨';
+  return '⛅';
+};
+
+const getFarmingAlert = (weather) => {
+  if (!weather) return { message: '✅ Good conditions for farming today', color: '#22c55e', bg: '#F0FDF4' };
+  const { rainChance = 0, temp = 25, windKmph = 10 } = weather;
+  if (rainChance > 50) return { message: '🌧️ Rain expected — Skip irrigation today & protect harvested grain', color: '#3B82F6', bg: '#EFF6FF' };
+  if (temp > 35) return { message: '☀️ Very hot — Water crops in evening to reduce evaporation', color: '#F59E0B', bg: '#FFFBEB' };
+  if (windKmph > 20) return { message: '💨 High winds — Avoid spraying pesticides or fertilizers today', color: '#6366F1', bg: '#EEF2FF' };
+  return { message: '✅ Good conditions for farming today', color: '#22c55e', bg: '#F0FDF4' };
+};
+
+const getDaysToHarvest = (crop, sowingDate) => {
+  const harvestDays = {
+    Rice: 120, Wheat: 150, Cotton: 180, Sugarcane: 365,
+    Vegetables: 90, Soybean: 100, Maize: 110,
+  };
+  const total = harvestDays[crop] || 120;
+  const sown = new Date(sowingDate || Date.now() - 60 * 24 * 60 * 60 * 1000);
+  const harvest = new Date(sown.getTime() + total * 24 * 60 * 60 * 1000);
+  const remaining = Math.round((harvest - Date.now()) / (1000 * 60 * 60 * 24));
+  return Math.max(0, remaining);
+};
+
+const getDailyWater = (crop, acres) => {
+  const waterPerAcre = {
+    Rice: 4800, Wheat: 1200, Cotton: 1800, Sugarcane: 3500,
+    Vegetables: 1800, Soybean: 1200, Maize: 1500,
+  };
+  return Math.round((waterPerAcre[crop] || 1500) * (acres || 1)).toLocaleString('en-IN');
+};
+
+const getWeatherScore = (weather) => {
+  if (!weather) return 7;
+  const { temp, rainChance = 0, windKmph = 10 } = weather;
+  let score = 8;
+  if (rainChance > 70) score -= 2;
+  if (rainChance > 30) score -= 1;
+  if (temp > 38) score -= 2;
+  if (temp > 33) score -= 1;
+  if (temp < 10) score -= 2;
+  if (windKmph > 25) score -= 1;
+  return Math.max(1, Math.min(10, score));
+};
+
+export default function HomePage({ profile, onOpenSettings }) {
+  const [weather, setWeather] = useState(null);
+  const [weatherLoading, setWeatherLoading] = useState(true);
+  const [weatherError, setWeatherError] = useState(false);
+  const [recentQuestions, setRecentQuestions] = useState([]);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const today = new Date();
+  const dateStr = today.toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  const tip = getDailyTip(profile.crop);
+
+  useEffect(() => {
+    const q = JSON.parse(localStorage.getItem('kisansathi_recent_questions') || '[]');
+    setRecentQuestions(q.slice(0, 3));
+    fetchWeather();
+  }, []);
+
+  const fetchWeather = async () => {
+    setWeatherLoading(true);
+    setWeatherError(false);
+    try {
+      const city = encodeURIComponent(profile.village || 'Pune');
+      const res = await fetch(`https://wttr.in/${city}?format=j1`);
+      if (!res.ok) throw new Error('Weather API error');
+      const data = await res.json();
+      const current = data.current_condition?.[0];
+      const hourly = data.weather?.[0]?.hourly?.[4];
+      setWeather({
+        temp: parseInt(current?.temp_C || 25),
+        feelsLike: parseInt(current?.FeelsLikeC || 23),
+        desc: current?.weatherDesc?.[0]?.value || 'Partly Cloudy',
+        humidity: parseInt(current?.humidity || 60),
+        windKmph: parseInt(current?.windspeedKmph || 10),
+        visibility: parseInt(current?.visibility || 10),
+        rainChance: parseInt(hourly?.chanceofrain || hourly?.chanceOfRain || 20),
+        uvIndex: parseInt(current?.uvIndex || 5),
+      });
+    } catch (e) {
+      setWeather({ temp: 28, desc: 'Partly Cloudy', humidity: 65, windKmph: 12, rainChance: 20, visibility: 10 });
+      setWeatherError(true);
+    } finally {
+      setWeatherLoading(false);
+      setIsRefreshing(false);
+    }
+  };
+
+  const handleRefresh = () => {
+    setIsRefreshing(true);
+    fetchWeather();
+  };
+
+  const alert = getFarmingAlert(weather);
+  const daysToHarvest = getDaysToHarvest(profile.crop, profile.sowingDate);
+  const weatherScore = getWeatherScore(weather);
+
+  return (
+    <div style={{ background: '#F8F9FA', minHeight: '100vh' }}>
+      {/* Top Header Bar */}
+      <div
+        className="px-8 py-6 flex items-center justify-between relative overflow-hidden"
+        style={{ background: 'linear-gradient(135deg, #1B4332 0%, #2D6A4F 60%, #40916C 100%)' }}
+      >
+        <div className="absolute -top-10 -right-10 w-48 h-48 rounded-full opacity-10" style={{ background: '#74C69D' }} />
+        <div className="absolute top-0 right-32 w-24 h-24 rounded-full opacity-10" style={{ background: '#F4A261' }} />
+        <div className="relative">
+          <p className="text-green-300 text-xs font-semibold uppercase tracking-widest mb-1">{dateStr}</p>
+          <h1 className="text-white text-3xl font-extrabold">
+            Jai Kisan, {profile.name.split(' ')[0]}! 🌾
+          </h1>
+          <div className="flex items-center gap-2 mt-2">
+            <span className="px-3 py-1 rounded-full text-xs font-bold" style={{ background: 'rgba(255,255,255,0.2)', color: '#D1FAE5' }}>
+              🌱 {profile.crop}
+            </span>
+            <span className="px-3 py-1 rounded-full text-xs font-bold" style={{ background: 'rgba(255,255,255,0.2)', color: '#FEF3C7' }}>
+              📐 {profile.acres} acres
+            </span>
+            <span className="px-3 py-1 rounded-full text-xs font-bold" style={{ background: 'rgba(255,255,255,0.2)', color: '#E0E7FF' }}>
+              📍 {profile.village}, {profile.state}
+            </span>
+          </div>
+        </div>
+        <button
+          id="settings-btn"
+          onClick={onOpenSettings}
+          className="relative z-10 w-11 h-11 rounded-2xl flex items-center justify-center transition-all"
+          style={{ background: 'rgba(255,255,255,0.2)' }}
+        >
+          <Settings size={20} className="text-white" />
+        </button>
+      </div>
+
+      {/* Main Content Grid */}
+      <div className="p-8">
+        {/* Quick Stats Row */}
+        <div className="grid grid-cols-4 gap-4 mb-6 animate-slide-up">
+          <StatCard id="stat-harvest" emoji="🌾" label="Days to Harvest" value={daysToHarvest} unit="days" color="#2D6A4F" bg="#F0FDF4" />
+          <StatCard id="stat-water" emoji="💧" label="Today's Water" value={getDailyWater(profile.crop, profile.acres)} unit="litres" color="#3B82F6" bg="#EFF6FF" />
+          <StatCard id="stat-fertilizer" emoji="🌿" label="Fertilizer Due" value={daysToHarvest % 14 < 3 ? 'Today' : `${14 - (daysToHarvest % 14)} days`} unit="" color="#F59E0B" bg="#FFFBEB" />
+          <StatCard id="stat-weather-score" emoji="⭐" label="Weather Score" value={`${weatherScore}/10`} unit="" color="#8B5CF6" bg="#F5F3FF" />
+        </div>
+
+        {/* Two-column layout */}
+        <div className="grid grid-cols-3 gap-6">
+          {/* Left column - wider */}
+          <div className="col-span-2 space-y-6">
+            {/* Weather Card */}
+            <div className="card animate-slide-up">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="font-bold text-text-primary text-lg">📍 {profile.village} — Live Weather</h2>
+                <button id="refresh-weather" onClick={handleRefresh} className="p-2 rounded-xl flex items-center gap-2 text-sm font-medium" style={{ background: '#F0FDF4', color: '#2D6A4F' }}>
+                  <RefreshCw size={14} className={isRefreshing ? 'animate-spin' : ''} />
+                  Refresh
+                </button>
+              </div>
+
+              {weatherLoading ? (
+                <div className="space-y-3">
+                  <SkeletonCard height={80} />
+                  <SkeletonText width="50%" />
+                </div>
+              ) : (
+                <div className="flex items-start gap-8">
+                  <div className="flex items-end gap-3">
+                    <span className="text-6xl">{getWeatherEmoji(weather?.desc)}</span>
+                    <div>
+                      <div className="text-5xl font-extrabold text-text-primary">{weather?.temp}°C</div>
+                      <div className="text-text-secondary text-base mt-1">{weather?.desc}</div>
+                    </div>
+                  </div>
+
+                  <div className="flex-1 grid grid-cols-2 gap-4">
+                    <WeatherStat icon={<Droplets size={16} style={{ color: '#3B82F6' }} />} label="Humidity" value={`${weather?.humidity}%`} />
+                    <WeatherStat icon={<Wind size={16} style={{ color: '#6B7280' }} />} label="Wind" value={`${weather?.windKmph} km/h`} />
+                    <WeatherStat icon={<Eye size={16} style={{ color: '#8B5CF6' }} />} label="Visibility" value={`${weather?.visibility} km`} />
+                    <WeatherStat icon={<span style={{ fontSize: 16 }}>🌧️</span>} label="Rain Chance" value={`${weather?.rainChance}%`} />
+                  </div>
+
+                  <div className="flex-1 px-4 py-3 rounded-2xl flex items-center gap-2" style={{ background: alert.bg }}>
+                    <p className="text-sm font-semibold leading-relaxed" style={{ color: alert.color }}>{alert.message}</p>
+                  </div>
+                </div>
+              )}
+              {weatherError && <p className="text-xs text-text-secondary mt-2 text-center">⚠️ Using estimated weather data</p>}
+            </div>
+
+            {/* Farm Summary */}
+            <div className="card animate-slide-up">
+              <h3 className="font-bold text-text-primary text-lg mb-4">Your Farm Overview 🏡</h3>
+              <div className="grid grid-cols-3 gap-4">
+                {[
+                  { label: 'Crop', value: profile.crop, emoji: '🌱', desc: 'Primary crop' },
+                  { label: 'Total Area', value: `${profile.acres} acres`, emoji: '📐', desc: 'Farm size' },
+                  { label: 'Soil Type', value: `${profile.soilType} Soil`, emoji: '🌍', desc: 'Soil classification' },
+                ].map(({ label, value, emoji, desc }) => (
+                  <div key={label} className="p-4 rounded-2xl text-center" style={{ background: '#F8F9FA' }}>
+                    <div className="text-3xl mb-2">{emoji}</div>
+                    <div className="text-xs text-text-secondary mb-1">{desc}</div>
+                    <div className="text-base font-bold text-text-primary">{value}</div>
+                  </div>
+                ))}
+              </div>
+              {profile.challenges && profile.challenges.length > 0 && (
+                <div className="mt-4 pt-4 border-t border-gray-100">
+                  <p className="text-xs text-text-secondary font-semibold mb-2 uppercase tracking-wide">Focus Areas</p>
+                  <div className="flex flex-wrap gap-2">
+                    {profile.challenges.map((c) => (
+                      <span key={c} className="badge badge-yellow capitalize">{c.replace('_', ' ')}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Right column */}
+          <div className="space-y-6">
+            {/* Today's Tip */}
+            <div
+              className="p-5 rounded-2xl relative overflow-hidden animate-slide-up"
+              style={{ background: 'linear-gradient(135deg, #2D6A4F, #40916C)' }}
+            >
+              <div className="absolute -bottom-4 -right-4 text-7xl opacity-20">💡</div>
+              <div className="relative">
+                <p className="text-green-200 text-xs font-semibold uppercase tracking-wider mb-2">💡 Today's Tip</p>
+                <p className="text-white text-sm font-medium leading-relaxed">{tip}</p>
+              </div>
+            </div>
+
+            {/* Recent Questions */}
+            {recentQuestions.length > 0 && (
+              <div className="card animate-slide-up">
+                <h3 className="font-bold text-text-primary mb-3">Recent from Crop Doctor 🌿</h3>
+                <div className="space-y-2">
+                  {recentQuestions.map((q, i) => (
+                    <div key={i} className="tag w-full block text-left text-sm p-3">
+                      {q.length > 55 ? q.substring(0, 55) + '...' : q}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Quick Actions */}
+            <div className="card animate-slide-up">
+              <h3 className="font-bold text-text-primary mb-3">Quick Actions ⚡</h3>
+              <div className="space-y-2">
+                {[
+                  { emoji: '🌿', label: 'Ask Crop Doctor', sub: 'Get instant AI advice' },
+                  { emoji: '📊', label: 'Calculate Resources', sub: 'Water, fertilizer & more' },
+                  { emoji: '📅', label: 'View Calendar', sub: 'Today\'s tasks' },
+                  { emoji: '💰', label: 'Check Mandi Prices', sub: 'Latest market rates' },
+                ].map(({ emoji, label, sub }) => (
+                  <div key={label} className="flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all card-hover" style={{ background: '#F8F9FA' }}>
+                    <span className="text-xl">{emoji}</span>
+                    <div>
+                      <div className="text-sm font-semibold text-text-primary">{label}</div>
+                      <div className="text-xs text-text-secondary">{sub}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function WeatherStat({ icon, label, value }) {
+  return (
+    <div className="flex items-center gap-2 p-3 rounded-xl" style={{ background: '#F8F9FA' }}>
+      {icon}
+      <div>
+        <div className="text-xs text-text-secondary">{label}</div>
+        <div className="text-sm font-bold text-text-primary">{value}</div>
+      </div>
+    </div>
+  );
+}
+
+function StatCard({ id, emoji, label, value, unit, color, bg }) {
+  return (
+    <div id={id} className="card card-hover animate-count-up p-5">
+      <div className="flex items-start justify-between mb-3">
+        <span className="text-3xl">{emoji}</span>
+        <div className="w-2 h-2 rounded-full mt-1" style={{ background: color }} />
+      </div>
+      <div className="text-2xl font-extrabold mb-0.5" style={{ color }}>{value}</div>
+      {unit && <div className="text-xs text-text-secondary">{unit}</div>}
+      <div className="text-sm text-text-secondary mt-1 font-medium">{label}</div>
+    </div>
+  );
+}
