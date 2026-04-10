@@ -7,6 +7,9 @@ import CalculatorPage from './pages/Calculator';
 import CalendarPage from './pages/Calendar';
 import MandiPricesPage from './pages/MandiPrices';
 import SettingsDrawer from './pages/Settings';
+import axios from 'axios';
+
+const API_URL = 'http://localhost:5000/api/profile';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('home');
@@ -16,11 +19,20 @@ export default function App() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
 
   useEffect(() => {
-    const saved = localStorage.getItem('kisansathi_profile');
-    if (saved) {
-      setProfile(JSON.parse(saved));
-    }
-    setIsLoading(false);
+    const fetchProfile = async () => {
+      const userId = localStorage.getItem('kisansathi_userId');
+      if (userId) {
+        try {
+          const { data } = await axios.get(`${API_URL}/${userId}`);
+          setProfile(data);
+        } catch (err) {
+          console.error("Failed to load profile", err);
+          localStorage.removeItem('kisansathi_userId');
+        }
+      }
+      setIsLoading(false);
+    };
+    fetchProfile();
 
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
@@ -32,17 +44,34 @@ export default function App() {
     };
   }, []);
 
-  const handleOnboardingComplete = (newProfile) => {
-    localStorage.setItem('kisansathi_profile', JSON.stringify(newProfile));
-    setProfile(newProfile);
+  const handleOnboardingComplete = async (newProfile) => {
+    try {
+      const { data } = await axios.post(API_URL, newProfile);
+      localStorage.setItem('kisansathi_userId', data._id);
+      setProfile(data);
+    } catch (err) {
+      console.error("Error creating profile", err);
+      alert("Failed to save profile. Is the backend running?");
+    }
   };
 
-  const handleProfileUpdate = (updated) => {
-    localStorage.setItem('kisansathi_profile', JSON.stringify(updated));
-    setProfile(updated);
+  const handleProfileUpdate = async (updated) => {
+    try {
+      const { data } = await axios.put(`${API_URL}/${profile._id}`, updated);
+      setProfile(data);
+    } catch (err) {
+      console.error("Error updating profile", err);
+    }
   };
 
-  const handleClearData = () => {
+  const handleClearData = async () => {
+    if (profile?._id) {
+      try {
+        await axios.delete(`${API_URL}/${profile._id}`);
+      } catch (err) {
+        console.error("Error deleting profile", err);
+      }
+    }
     localStorage.clear();
     setProfile(null);
     setShowSettings(false);
