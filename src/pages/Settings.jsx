@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { X, ChevronRight, Trash2, Globe, Info, Edit3, Save } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 const CROPS = ['Rice', 'Wheat', 'Cotton', 'Sugarcane', 'Vegetables', 'Soybean', 'Maize'];
 const SOIL_TYPES = ['Red', 'Black', 'Alluvial', 'Sandy'];
 
 export default function SettingsDrawer({ profile, onClose, onUpdate, onLogout }) {
+  const { t, i18n } = useTranslation();
   const [isEditing, setIsEditing] = useState(!profile); // Auto-edit if profile missing
   const [editData, setEditData] = useState(profile || {
     name: '',
@@ -40,6 +42,11 @@ export default function SettingsDrawer({ profile, onClose, onUpdate, onLogout })
 
   const username = localStorage.getItem('kisansathi_username') || 'Farmer';
 
+  const handleLanguageChange = (lang) => {
+    i18n.changeLanguage(lang);
+    localStorage.setItem('kisansathi_lang', lang);
+  };
+
   return (
     <>
       {/* Overlay */}
@@ -51,7 +58,7 @@ export default function SettingsDrawer({ profile, onClose, onUpdate, onLogout })
         <div className="gradient-green px-5 pt-12 pb-5">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-white font-bold text-xl">Settings ⚙️</h2>
+              <h2 className="text-white font-bold text-xl">{t('settings.title')}</h2>
               <p className="text-green-200 text-sm">KisanSathi v1.0</p>
             </div>
             <button id="settings-close" onClick={onClose} className="w-10 h-10 rounded-2xl flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.2)' }}>
@@ -63,7 +70,7 @@ export default function SettingsDrawer({ profile, onClose, onUpdate, onLogout })
         <div className="p-5 space-y-4">
           {/* Account Section */}
           <div className="card">
-            <h3 className="font-bold text-text-primary mb-3">🛡️ Account</h3>
+            <h3 className="font-bold text-text-primary mb-3">{t('settings.account')}</h3>
             <div className="flex items-center justify-between p-3 bg-gray-50 rounded-2xl mb-3">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center text-green-700 font-bold">
@@ -71,7 +78,7 @@ export default function SettingsDrawer({ profile, onClose, onUpdate, onLogout })
                 </div>
                 <div>
                   <p className="text-sm font-bold text-text-primary">{username}</p>
-                  <p className="text-xs text-text-secondary">Verified Farmer</p>
+                  <p className="text-xs text-text-secondary">{t('settings.verifiedFarmer')}</p>
                 </div>
               </div>
               <button 
@@ -79,7 +86,7 @@ export default function SettingsDrawer({ profile, onClose, onUpdate, onLogout })
                 onClick={onLogout}
                 className="text-xs font-bold text-red-600 px-3 py-1.5 rounded-xl border border-red-100 hover:bg-red-50 transition-all"
               >
-                Logout
+                {t('settings.logout')}
               </button>
             </div>
           </div>
@@ -87,10 +94,10 @@ export default function SettingsDrawer({ profile, onClose, onUpdate, onLogout })
           {/* Profile Section */}
           <div className="card">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold text-text-primary">👤 Farmer Profile</h3>
+              <h3 className="font-bold text-text-primary">{t('settings.farmerProfile')}</h3>
               {!isEditing ? (
                 <button id="edit-profile" onClick={() => setIsEditing(true)} className="flex items-center gap-1.5 text-sm font-semibold" style={{ color: '#2D6A4F' }}>
-                  <Edit3 size={14} /> Edit
+                  <Edit3 size={14} /> {t('settings.edit')}
                 </button>
               ) : (
                 <button 
@@ -100,7 +107,7 @@ export default function SettingsDrawer({ profile, onClose, onUpdate, onLogout })
                   className="flex items-center gap-1.5 text-sm font-semibold transition-opacity" 
                   style={{ color: '#059669', opacity: isSaving ? 0.6 : 1 }}
                 >
-                  <Save size={14} /> {isSaving ? 'Saving...' : 'Save'}
+                  <Save size={14} /> {isSaving ? t('settings.saving') : t('settings.save')}
                 </button>
               )}
             </div>
@@ -108,12 +115,12 @@ export default function SettingsDrawer({ profile, onClose, onUpdate, onLogout })
             {!isEditing && profile ? (
               <div className="space-y-2">
                 {[
-                  { label: 'Name', value: profile.name, emoji: '👤' },
-                  { label: 'Village/City', value: profile.village, emoji: '📍' },
-                  { label: 'State', value: profile.state, emoji: '🗺️' },
-                  { label: 'Primary Crop', value: profile.crop, emoji: '🌱' },
-                  { label: 'Farm Size', value: `${profile.acres} acres`, emoji: '📐' },
-                  { label: 'Soil Type', value: `${profile.soilType} Soil`, emoji: '🌍' },
+                  { label: t('settings.name'), value: profile.name, emoji: '👤' },
+                  { label: t('settings.village'), value: profile.village, emoji: '📍' },
+                  { label: t('settings.state'), value: profile.state, emoji: '🗺️' },
+                  { label: t('settings.primaryCrop'), value: profile.crop, emoji: '🌱' },
+                  { label: t('settings.farmSize', { acres: profile.acres }), value: '', emoji: '📐' },
+                  { label: t('home.soilType'), value: `${profile.soilType} Soil`, emoji: '🌍' },
                 ].map(({ label, value, emoji }) => (
                   <div key={label} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
                     <span className="text-sm text-text-secondary">{emoji} {label}</span>
@@ -124,9 +131,9 @@ export default function SettingsDrawer({ profile, onClose, onUpdate, onLogout })
             ) : !isEditing ? (
               <div className="text-center py-8">
                 <div className="text-4xl mb-3">🚜</div>
-                <p className="text-sm font-bold text-gray-900">Farm Not Setup</p>
-                <p className="text-xs text-gray-500 mt-1">Please enter your details to get started.</p>
-                <button onClick={() => setIsEditing(true)} className="mt-4 text-sm font-bold text-green-700">Set Up Profile</button>
+                <p className="text-sm font-bold text-gray-900">{t('settings.farmNotSetup')}</p>
+                <p className="text-xs text-gray-500 mt-1">{t('settings.setupPrompt')}</p>
+                <button onClick={() => setIsEditing(true)} className="mt-4 text-sm font-bold text-green-700">{t('settings.setUpProfile')}</button>
               </div>
             ) : (
               <div className="space-y-3">
@@ -186,18 +193,21 @@ export default function SettingsDrawer({ profile, onClose, onUpdate, onLogout })
 
           {/* Preferences */}
           <div className="card">
-            <h3 className="font-bold text-text-primary mb-3">🌐 Preferences</h3>
+            <h3 className="font-bold text-text-primary mb-3">{t('settings.preferences')}</h3>
             <div className="flex items-center justify-between py-3 border-b border-gray-100">
               <div className="flex items-center gap-2">
                 <Globe size={16} style={{ color: '#6B7280' }} />
-                <span className="text-sm text-text-primary">Language</span>
+                <span className="text-sm text-text-primary">{t('settings.language')}</span>
               </div>
               <div className="flex gap-2">
-                <button id="lang-en" className="px-3 py-1.5 rounded-xl text-xs font-bold transition-all" style={{ background: '#2D6A4F', color: 'white' }}>
+                <button id="lang-en" onClick={() => handleLanguageChange('en')} className="px-3 py-1.5 rounded-xl text-xs font-bold transition-all" style={{ background: i18n.language === 'en' ? '#2D6A4F' : '#F3F4F6', color: i18n.language === 'en' ? 'white' : '#6B7280' }}>
                   EN
                 </button>
-                <button id="lang-hi" className="px-3 py-1.5 rounded-xl text-xs font-bold transition-all" style={{ background: '#F3F4F6', color: '#6B7280' }}>
+                <button id="lang-hi" onClick={() => handleLanguageChange('hi')} className="px-3 py-1.5 rounded-xl text-xs font-bold transition-all" style={{ background: i18n.language === 'hi' ? '#2D6A4F' : '#F3F4F6', color: i18n.language === 'hi' ? 'white' : '#6B7280' }}>
                   हि
+                </button>
+                <button id="lang-mr" onClick={() => handleLanguageChange('mr')} className="px-3 py-1.5 rounded-xl text-xs font-bold transition-all" style={{ background: i18n.language === 'mr' ? '#2D6A4F' : '#F3F4F6', color: i18n.language === 'mr' ? 'white' : '#6B7280' }}>
+                  म
                 </button>
               </div>
             </div>

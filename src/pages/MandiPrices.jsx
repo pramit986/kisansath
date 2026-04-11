@@ -3,6 +3,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { cropPrices as staticCropPrices, nearbyMandis as staticMandis, weekDays, marketInsights, govtSchemes } from '../data/mandiData';
 import { TrendingUp, TrendingDown, ExternalLink, Loader2, AlertCircle } from 'lucide-react';
 import { fetchMandiPrices } from '../services/mandiService';
+import { useTranslation } from 'react-i18next';
 
 const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
@@ -17,6 +18,7 @@ const CustomTooltip = ({ active, payload, label }) => {
 };
 
 export default function MandiPricesPage({ profile }) {
+  const { t } = useTranslation();
   const [selectedCrop, setSelectedCrop] = useState(profile.crop || 'Rice');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -58,14 +60,14 @@ export default function MandiPricesPage({ profile }) {
       <div className="gradient-green px-8 py-6">
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-white text-2xl font-extrabold mb-0.5">Mandi Prices 📊</h1>
-            <p className="text-green-200 text-sm">Maharashtra, India — Real-time market rates</p>
+            <h1 className="text-white text-2xl font-extrabold mb-0.5">{t('mandi.title')}</h1>
+            <p className="text-green-200 text-sm">{t('mandi.subtitle')}</p>
           </div>
           <div className="text-right">
             <div className={`badge mb-1 ${loading ? 'animate-pulse bg-amber-500' : 'bg-red-500'} text-white border-none`}>
-              {loading ? '⌛ Syncing...' : '🔴 Live Data'}
+              {loading ? t('mandi.syncing') : t('mandi.liveData')}
             </div>
-            <p className="text-green-300 text-xs">Updated {lastUpdated}</p>
+            <p className="text-green-300 text-xs">{t('mandi.updated', { time: lastUpdated })}</p>
           </div>
         </div>
       </div>
@@ -83,7 +85,7 @@ export default function MandiPricesPage({ profile }) {
         {/* Top: Price Cards Grid */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="section-header">Today's Crop Prices</h2>
+            <h2 className="section-header">{t('mandi.todaysPrices')}</h2>
             {loading && <Loader2 className="animate-spin text-green-600" size={20} />}
           </div>
           <div className="grid grid-cols-7 gap-3">
@@ -109,7 +111,7 @@ export default function MandiPricesPage({ profile }) {
                   <div className="text-base font-extrabold text-center" style={{ color: '#1B1B1B' }}>
                     ₹{data.current.toLocaleString('en-IN')}
                   </div>
-                  <div className="text-xs text-text-secondary text-center">/quintal</div>
+                  <div className="text-xs text-text-secondary text-center">{t('mandi.quintal')}</div>
                   <div className="flex items-center justify-center gap-1 mt-1.5">
                     {isUp ? <TrendingUp size={10} style={{ color: '#22C55E' }} /> : <TrendingDown size={10} style={{ color: '#EF4444' }} />}
                     <span className={`text-xs font-bold ${isUp ? 'price-up' : 'price-down'}`}>
@@ -127,14 +129,14 @@ export default function MandiPricesPage({ profile }) {
           {/* Price Trend Chart */}
           <div className="col-span-2 card animate-slide-up">
             <div className="flex items-center justify-between mb-1">
-              <h3 className="font-bold text-text-primary text-lg">{selectedData?.emoji} {selectedCrop} — 7-Day Price Trend</h3>
+              <h3 className="font-bold text-text-primary text-lg">{selectedData?.emoji} {selectedCrop} — {t('mandi.trendTitle')}</h3>
               <div className="flex items-center gap-2">
                 <span className={`badge ${(selectedData?.current - selectedData?.yesterday) >= 0 ? 'badge-green' : 'badge-red'}`}>
-                  {(selectedData?.current - selectedData?.yesterday) >= 0 ? '↑ Rising' : '↓ Falling'}
+                  {(selectedData?.current - selectedData?.yesterday) >= 0 ? t('mandi.rising') : t('mandi.falling')}
                 </span>
               </div>
             </div>
-            <p className="text-xs text-text-secondary mb-4">₹ per quintal — Maharashtra Mandis</p>
+            <p className="text-xs text-text-secondary mb-4">{t('mandi.trendSub')}</p>
             <ResponsiveContainer width="100%" height={220}>
               <LineChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F0F0F0" />
@@ -148,16 +150,16 @@ export default function MandiPricesPage({ profile }) {
             {/* Range info */}
             <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100">
               <div className="text-sm">
-                <span className="text-text-secondary">52-week Low: </span>
+                <span className="text-text-secondary">{t('mandi.weekLow')}</span>
                 <strong style={{ color: '#DC2626' }}>₹{selectedData?.min.toLocaleString('en-IN')}</strong>
               </div>
               <div className="text-sm">
-                <span className="text-text-secondary">52-week High: </span>
+                <span className="text-text-secondary">{t('mandi.weekHigh')}</span>
                 <strong style={{ color: '#059669' }}>₹{selectedData?.max.toLocaleString('en-IN')}</strong>
               </div>
               <div className="text-sm">
-                <span className="text-text-secondary">Today's Rate: </span>
-                <strong style={{ color: '#2D6A4F' }}>₹{selectedData?.current.toLocaleString('en-IN')}/quintal</strong>
+                <span className="text-text-secondary">{t('mandi.todayRate')}</span>
+                <strong style={{ color: '#2D6A4F' }}>₹{selectedData?.current.toLocaleString('en-IN')}{t('mandi.quintal')}</strong>
               </div>
             </div>
           </div>
@@ -165,11 +167,11 @@ export default function MandiPricesPage({ profile }) {
           {/* Market Insight + Govt Schemes */}
           <div className="col-span-1 space-y-4">
             <div className="p-4 rounded-2xl" style={{ background: 'linear-gradient(135deg, #FFFBEB, #FEF3C7)', border: '1.5px solid #FDE68A' }}>
-              <p className="text-xs font-bold text-amber-700 mb-2">💡 Market Insight — {selectedCrop}</p>
+              <p className="text-xs font-bold text-amber-700 mb-2">{t('mandi.marketInsight', { crop: selectedCrop })}</p>
               <p className="text-sm text-amber-800 font-medium leading-relaxed">{marketInsights[selectedCrop]}</p>
             </div>
             <div className="card">
-              <h4 className="font-bold text-text-primary mb-3">🏛️ Govt Schemes</h4>
+              <h4 className="font-bold text-text-primary mb-3">{t('mandi.govtSchemes')}</h4>
               <div className="space-y-3">
                 {govtSchemes.map((scheme, i) => (
                   <div key={i} id={`scheme-${i}`} className="p-3 rounded-xl" style={{ background: scheme.color, border: `1px solid ${scheme.borderColor}` }}>
@@ -181,7 +183,7 @@ export default function MandiPricesPage({ profile }) {
                       </div>
                     </div>
                     <a href={scheme.link} target="_blank" rel="noopener noreferrer" id={`scheme-link-${i}`} className="text-xs font-semibold flex items-center gap-1 mt-1" style={{ color: '#2D6A4F' }}>
-                      Learn More <ExternalLink size={10} />
+                      {t('mandi.learnMore')} <ExternalLink size={10} />
                     </a>
                   </div>
                 ))}
@@ -192,12 +194,12 @@ export default function MandiPricesPage({ profile }) {
 
         {/* Bottom: Nearby Mandis Table */}
         <div className="card animate-slide-up">
-          <h2 className="font-bold text-text-primary text-lg mb-4">🏪 Nearby Mandis — Maharashtra</h2>
+          <h2 className="font-bold text-text-primary text-lg mb-4">{t('mandi.nearbyMandis')}</h2>
           <div className="overflow-x-auto">
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ background: '#F8F9FA' }}>
-                  {['Mandi Name', 'Location', 'Distance', 'Today\'s Price', 'Best Crop', 'Timing', 'Status'].map(h => (
+                  {[t('mandi.mandiName'), t('mandi.location'), t('mandi.distance'), t('mandi.price'), t('mandi.bestCrop'), t('mandi.timing'), t('mandi.status')].map(h => (
                     <th key={h} className="text-left p-4 text-xs font-bold text-text-secondary uppercase tracking-wide">{h}</th>
                   ))}
                 </tr>
@@ -207,13 +209,13 @@ export default function MandiPricesPage({ profile }) {
                   <tr key={i} id={`mandi-${mandi.city.toLowerCase()}`} style={{ borderTop: '1px solid #F3F4F6', background: mandi.isBestDeal ? '#F0FDF4' : 'transparent' }}>
                     <td className="p-4">
                       <div className="font-semibold text-text-primary">{mandi.name}</div>
-                      {mandi.isBestDeal && <span className="badge badge-green text-xs mt-1">🏆 Best Deal</span>}
+                      {mandi.isBestDeal && <span className="badge badge-green text-xs mt-1">{t('mandi.bestDeal')}</span>}
                     </td>
                     <td className="p-4 text-sm text-text-secondary">{mandi.city}</td>
                     <td className="p-4 text-sm text-text-secondary">{mandi.distance}</td>
-                    <td className="p-4">
+                    <td className="p-4 mt-1">
                       <div className="text-base font-bold text-text-primary">₹{mandi.price.toLocaleString('en-IN')}</div>
-                      <div className="text-xs text-text-secondary">/quintal</div>
+                      <div className="text-xs text-text-secondary">{t('mandi.quintal')}</div>
                     </td>
                     <td className="p-4">
                       <span className="badge" style={{ background: '#F0FDF4', color: '#2D6A4F' }}>{mandi.crop}</span>
@@ -222,7 +224,7 @@ export default function MandiPricesPage({ profile }) {
                     <td className="p-4">
                       <div className="flex items-center gap-1.5">
                         <div className="w-2 h-2 rounded-full bg-green-400" />
-                        <span className="text-xs text-green-600 font-semibold">Open</span>
+                        <span className="text-xs text-green-600 font-semibold">{t('mandi.open')}</span>
                       </div>
                     </td>
                   </tr>

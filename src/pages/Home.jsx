@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Settings, RefreshCw, Droplets, Wind, Eye, ArrowRight } from 'lucide-react';
 import { getDailyTip } from '../data/farmingTips';
 import { SkeletonCard, SkeletonText } from '../components/SkeletonCard';
+import VoiceNavigator from '../components/VoiceNavigator';
+import { useTranslation } from 'react-i18next';
 
 const getWeatherEmoji = (desc) => {
   if (!desc) return '⛅';
@@ -60,7 +62,8 @@ const getWeatherScore = (weather) => {
   return Math.max(1, Math.min(10, score));
 };
 
-export default function HomePage({ profile, onOpenSettings }) {
+export default function HomePage({ profile, onOpenSettings, onNavigate }) {
+  const { t } = useTranslation();
   const [weather, setWeather] = useState(null);
   const [weatherLoading, setWeatherLoading] = useState(true);
   const [weatherError, setWeatherError] = useState(false);
@@ -70,7 +73,7 @@ export default function HomePage({ profile, onOpenSettings }) {
 
   const today = new Date();
   const dateStr = today.toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-  const tip = profile ? getDailyTip(profile.crop) : "Complete your profile to get personalized daily farming tips!";
+  const tip = profile ? getDailyTip(profile.crop) : t('home.connectCrops');
 
   useEffect(() => {
     const q = JSON.parse(localStorage.getItem('kisansathi_recent_questions') || '[]');
@@ -129,7 +132,7 @@ export default function HomePage({ profile, onOpenSettings }) {
         <div className="relative">
           <p className="text-green-300 text-xs font-bold uppercase tracking-widest mb-2">{dateStr}</p>
           <h1 className="text-white text-4xl font-black tracking-tight">
-            Welcome, {userName}! 🌾
+            {t('home.welcome', { name: userName })}
           </h1>
           <div className="flex items-center gap-3 mt-4">
             {profile ? (
@@ -143,7 +146,7 @@ export default function HomePage({ profile, onOpenSettings }) {
               </>
             ) : (
               <span className="px-4 py-1.5 rounded-full text-xs font-bold bg-amber-500/20 text-amber-200 backdrop-blur-md border border-amber-500/30">
-                ⚠️ Account Incomplete
+                {t('home.accountIncomplete')}
               </span>
             )}
           </div>
@@ -169,17 +172,17 @@ export default function HomePage({ profile, onOpenSettings }) {
               </div>
               <div className="p-8 flex-1">
                 <div className="flex items-center gap-2 mb-2 text-amber-700">
-                  <span className="font-black uppercase tracking-tighter text-sm">Action Required</span>
+                  <span className="font-black uppercase tracking-tighter text-sm">{t('home.actionRequired')}</span>
                 </div>
-                <h2 className="text-2xl font-black text-gray-900 mb-2">Complete Your Farming Profile</h2>
+                <h2 className="text-2xl font-black text-gray-900 mb-2">{t('home.completeProfile')}</h2>
                 <p className="text-gray-600 font-medium mb-6 max-w-xl">
-                  Connect your crops to KisanSathi to unlock personalized AI advice, weather alerts for your village, and harvesting timelines.
+                  {t('home.connectCrops')}
                 </p>
                 <button
                   onClick={onOpenSettings}
                   className="bg-amber-600 hover:bg-amber-700 text-white font-bold py-3 px-8 rounded-2xl transition-all shadow-lg shadow-amber-200 inline-flex items-center gap-2"
                 >
-                  Setup My Farm <ArrowRight size={18} />
+                  {t('home.setupFarm')} <ArrowRight size={18} />
                 </button>
               </div>
             </div>
@@ -188,10 +191,10 @@ export default function HomePage({ profile, onOpenSettings }) {
 
         {/* Quick Stats Row */}
         <div className="grid grid-cols-4 gap-6 mb-8 animate-slide-up">
-          <StatCard id="stat-harvest" emoji="🌾" label="Days to Harvest" value={daysToHarvest} unit="days" color="#2D6A4F" bg="#F0FDF4" />
-          <StatCard id="stat-water" emoji="💧" label="Today's Water" value={profile ? getDailyWater(profile.crop, profile.acres) : "-"} unit="litres" color="#3B82F6" bg="#EFF6FF" />
-          <StatCard id="stat-fertilizer" emoji="🌿" label="Fertilizer Due" value={profile ? (daysToHarvest % 14 < 3 ? 'Today' : `${14 - (daysToHarvest % 14)} days`) : "-"} unit="" color="#F59E0B" bg="#FFFBEB" />
-          <StatCard id="stat-weather-score" emoji="⭐" label="Weather Score" value={`${weatherScore}/10`} unit="" color="#8B5CF6" bg="#F5F3FF" />
+          <StatCard id="stat-harvest" emoji="🌾" label={t('home.daysToHarvest')} value={daysToHarvest} unit={t('home.days')} color="#2D6A4F" bg="#F0FDF4" />
+          <StatCard id="stat-water" emoji="💧" label={t('home.todaysWater')} value={profile ? getDailyWater(profile.crop, profile.acres) : "-"} unit={t('home.litres')} color="#3B82F6" bg="#EFF6FF" />
+          <StatCard id="stat-fertilizer" emoji="🌿" label={t('home.fertilizerDue')} value={profile ? (daysToHarvest % 14 < 3 ? 'Today' : `${14 - (daysToHarvest % 14)} ${t('home.days')}`) : "-"} unit="" color="#F59E0B" bg="#FFFBEB" />
+          <StatCard id="stat-weather-score" emoji="⭐" label={t('home.weatherScore')} value={`${weatherScore}/10`} unit="" color="#8B5CF6" bg="#F5F3FF" />
         </div>
 
         {/* Two-column layout */}
@@ -201,10 +204,10 @@ export default function HomePage({ profile, onOpenSettings }) {
             {/* Weather Card */}
             <div className="card animate-slide-up">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="font-bold text-text-primary text-lg">📍 {profile?.village || 'Location Not Set'} — Live Weather</h2>
+                <h2 className="font-bold text-text-primary text-lg">{t('home.liveWeather', { village: profile?.village || t('home.locationNotSet') })}</h2>
                 <button id="refresh-weather" onClick={handleRefresh} disabled={!profile} className="p-2 rounded-xl flex items-center gap-2 text-sm font-medium" style={{ background: '#F0FDF4', color: '#2D6A4F', opacity: !profile ? 0.5 : 1 }}>
                   <RefreshCw size={14} className={isRefreshing ? 'animate-spin' : ''} />
-                  Refresh
+                  {t('home.refresh')}
                 </button>
               </div>
 
@@ -224,10 +227,10 @@ export default function HomePage({ profile, onOpenSettings }) {
                   </div>
 
                   <div className="flex-1 grid grid-cols-2 gap-4">
-                    <WeatherStat icon={<Droplets size={16} style={{ color: '#3B82F6' }} />} label="Humidity" value={`${weather?.humidity}%`} />
-                    <WeatherStat icon={<Wind size={16} style={{ color: '#6B7280' }} />} label="Wind" value={`${weather?.windKmph} km/h`} />
-                    <WeatherStat icon={<Eye size={16} style={{ color: '#8B5CF6' }} />} label="Visibility" value={`${weather?.visibility} km`} />
-                    <WeatherStat icon={<span style={{ fontSize: 16 }}>🌧️</span>} label="Rain Chance" value={`${weather?.rainChance}%`} />
+                    <WeatherStat icon={<Droplets size={16} style={{ color: '#3B82F6' }} />} label={t('home.humidity')} value={`${weather?.humidity}%`} />
+                    <WeatherStat icon={<Wind size={16} style={{ color: '#6B7280' }} />} label={t('home.wind')} value={`${weather?.windKmph} km/h`} />
+                    <WeatherStat icon={<Eye size={16} style={{ color: '#8B5CF6' }} />} label={t('home.visibility')} value={`${weather?.visibility} km`} />
+                    <WeatherStat icon={<span style={{ fontSize: 16 }}>🌧️</span>} label={t('home.rainChance')} value={`${weather?.rainChance}%`} />
                   </div>
 
                   <div className="flex-1 px-4 py-3 rounded-2xl flex items-center gap-2" style={{ background: alert.bg }}>
@@ -240,12 +243,12 @@ export default function HomePage({ profile, onOpenSettings }) {
 
             {/* Farm Summary */}
             <div className="card animate-slide-up">
-              <h3 className="font-bold text-text-primary text-lg mb-4">Your Farm Overview 🏡</h3>
+              <h3 className="font-bold text-text-primary text-lg mb-4">{t('home.farmOverview')}</h3>
               <div className="grid grid-cols-3 gap-4">
                 {[
-                  { label: 'Crop', value: profile?.crop || 'Not Set', emoji: '🌱', desc: 'Primary crop' },
-                  { label: 'Total Area', value: profile?.acres ? `${profile.acres} acres` : 'Not Set', emoji: '📐', desc: 'Farm size' },
-                  { label: 'Soil Type', value: profile?.soilType ? `${profile.soilType} Soil` : 'Not Set', emoji: '🌍', desc: 'Soil classification' },
+                  { label: t('home.crop'), value: profile?.crop || t('home.notSet'), emoji: '🌱', desc: t('home.crop') },
+                  { label: t('home.totalArea'), value: profile?.acres ? `${profile.acres} acres` : t('home.notSet'), emoji: '📐', desc: t('home.totalArea') },
+                  { label: t('home.soilType'), value: profile?.soilType ? `${profile.soilType} Soil` : t('home.notSet'), emoji: '🌍', desc: t('home.soilType') },
                 ].map(({ label, value, emoji, desc }) => (
                   <div key={label} className="p-4 rounded-2xl text-center" style={{ background: '#F8F9FA' }}>
                     <div className="text-3xl mb-2">{emoji}</div>
@@ -297,13 +300,13 @@ export default function HomePage({ profile, onOpenSettings }) {
 
             {/* Quick Actions */}
             <div className="card animate-slide-up">
-              <h3 className="font-bold text-text-primary mb-3">Quick Actions ⚡</h3>
+              <h3 className="font-bold text-text-primary mb-3">{t('home.quickActions')}</h3>
               <div className="space-y-2">
                 {[
-                  { emoji: '🌿', label: 'Ask Crop Doctor', sub: 'Get instant AI advice' },
-                  { emoji: '📊', label: 'Calculate Resources', sub: 'Water, fertilizer & more' },
-                  { emoji: '📅', label: 'View Calendar', sub: 'Today\'s tasks' },
-                  { emoji: '💰', label: 'Check Mandi Prices', sub: 'Latest market rates' },
+                  { emoji: '🌿', label: t('home.askDoctor'), sub: t('home.askDoctorSub') },
+                  { emoji: '📊', label: t('home.calculate'), sub: t('home.calculateSub') },
+                  { emoji: '📅', label: t('home.calendar'), sub: t('home.calendarSub') },
+                  { emoji: '💰', label: t('home.mandiPrices'), sub: t('home.mandiPricesSub') },
                 ].map(({ emoji, label, sub }) => (
                   <div key={label} className="flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all card-hover" style={{ background: '#F8F9FA' }}>
                     <span className="text-xl">{emoji}</span>
@@ -318,6 +321,7 @@ export default function HomePage({ profile, onOpenSettings }) {
           </div>
         </div>
       </div>
+      {onNavigate && <VoiceNavigator onNavigate={onNavigate} />}
     </div>
   );
 }

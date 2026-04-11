@@ -111,12 +111,12 @@ export default function App() {
   const renderPage = () => {
     if (!profile) {
        // If no profile, we stay on Home but show the Onboarding prompt later
-       return <HomePage profile={null} onOpenSettings={() => setShowSettings(true)} />;
+       return <HomePage profile={null} onOpenSettings={() => setShowSettings(true)} onNavigate={setActiveTab} />;
     }
 
     switch (activeTab) {
       case 'home':
-        return <HomePage profile={profile} onOpenSettings={() => setShowSettings(true)} />;
+        return <HomePage profile={profile} onOpenSettings={() => setShowSettings(true)} onNavigate={setActiveTab} />;
       case 'doctor':
         return <CropDoctorPage profile={profile} />;
       case 'calculator':
@@ -126,7 +126,7 @@ export default function App() {
       case 'prices':
         return <MandiPricesPage profile={profile} />;
       default:
-        return <HomePage profile={profile} onOpenSettings={() => setShowSettings(true)} />;
+        return <HomePage profile={profile} onOpenSettings={() => setShowSettings(true)} onNavigate={setActiveTab} />;
     }
   };
 
