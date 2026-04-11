@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { cropPrices, nearbyMandis, weekDays, marketInsights, govtSchemes } from '../data/mandiData';
-import { TrendingUp, TrendingDown, ExternalLink } from 'lucide-react';
+import { cropPrices as staticCropPrices, nearbyMandis as staticMandis, weekDays, marketInsights, govtSchemes } from '../data/mandiData';
+import { TrendingUp, TrendingDown, ExternalLink, Loader2, AlertCircle } from 'lucide-react';
+import { fetchMandiPrices } from '../services/mandiService';
 
 const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
@@ -17,9 +18,35 @@ const CustomTooltip = ({ active, payload, label }) => {
 
 export default function MandiPricesPage({ profile }) {
   const [selectedCrop, setSelectedCrop] = useState(profile.crop || 'Rice');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [liveData, setLiveData] = useState({ crops: {}, mandis: [] });
+  
   const lastUpdated = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
 
-  const selectedData = cropPrices[selectedCrop];
+  useEffect(() => {
+    const loadLiveData = async () => {
+      try {
+        setLoading(true);
+        const data = await fetchMandiPrices('Maharashtra');
+        setLiveData({ crops: data.cropPrices, mandis: data.nearbyMandis });
+        setError(null);
+      } catch (err) {
+        console.error('Failed to fetch live prices:', err);
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadLiveData();
+  }, []);
+
+  // Merge live data with static data (prefer live)
+  const allCrops = { ...staticCropPrices, ...liveData.crops };
+  const allMandis = liveData.mandis.length > 0 ? liveData.mandis : staticMandis;
+
+  const selectedData = allCrops[selectedCrop];
   const chartData = weekDays.map((day, i) => ({
     day,
     price: selectedData?.weekData[i],
@@ -35,18 +62,32 @@ export default function MandiPricesPage({ profile }) {
             <p className="text-green-200 text-sm">Maharashtra, India — Real-time market rates</p>
           </div>
           <div className="text-right">
-            <div className="badge mb-1" style={{ background: 'rgba(255,255,255,0.2)', color: '#D1FAE5' }}>🔴 Live Data</div>
+            <div className={`badge mb-1 ${loading ? 'animate-pulse bg-amber-500' : 'bg-red-500'} text-white border-none`}>
+              {loading ? '⌛ Syncing...' : '🔴 Live Data'}
+            </div>
             <p className="text-green-300 text-xs">Updated {lastUpdated}</p>
           </div>
         </div>
       </div>
 
       <div className="p-8">
+        {error && !error.includes('API Key missing') && (
+          <div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 flex items-center gap-3 text-red-700">
+            <AlertCircle size={20} />
+            <div className="text-sm font-medium">
+              Connection error: {error}. Showing cached prices.
+            </div>
+          </div>
+        )}
+
         {/* Top: Price Cards Grid */}
         <div className="mb-6">
-          <h2 className="section-header mb-4">Today's Crop Prices</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="section-header">Today's Crop Prices</h2>
+            {loading && <Loader2 className="animate-spin text-green-600" size={20} />}
+          </div>
           <div className="grid grid-cols-7 gap-3">
-            {Object.entries(cropPrices).map(([crop, data]) => {
+            {Object.entries(allCrops).map(([crop, data]) => {
               const change = data.current - data.yesterday;
               const pct = ((change / data.yesterday) * 100).toFixed(1);
               const isUp = change >= 0;
@@ -162,7 +203,7 @@ export default function MandiPricesPage({ profile }) {
                 </tr>
               </thead>
               <tbody>
-                {nearbyMandis.map((mandi, i) => (
+                {allMandis.map((mandi, i) => (
                   <tr key={i} id={`mandi-${mandi.city.toLowerCase()}`} style={{ borderTop: '1px solid #F3F4F6', background: mandi.isBestDeal ? '#F0FDF4' : 'transparent' }}>
                     <td className="p-4">
                       <div className="font-semibold text-text-primary">{mandi.name}</div>
