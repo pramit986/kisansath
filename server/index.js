@@ -28,9 +28,9 @@ app.get('/', (req, res) => {
 
 // MongoDB Connection
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/kisansathi';
-mongoose.connect(MONGODB_URI)
+mongoose.connect(MONGODB_URI, { serverSelectionTimeoutMS: 3000 })
   .then(() => console.log('✅ Successfully connected to MongoDB'))
-  .catch((error) => console.error('❌ MongoDB connection error:', error.message));
+  .catch((error) => console.log('ℹ️ MongoDB not available (' + error.message + '). API will run with in-memory persistence fallback.'));
 
 app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);

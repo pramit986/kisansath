@@ -33,7 +33,7 @@ export default function SettingsDrawer({ profile, onClose, onUpdate, onLogout })
     try {
       await onUpdate(editData);
       setIsEditing(false);
-    } catch (err) {
+    } catch {
       setError("Failed to save. Check intermediate connection.");
     } finally {
       setIsSaving(false);

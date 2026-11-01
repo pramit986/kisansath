@@ -118,6 +118,30 @@ export default function AuthPage({ onLoginSuccess }) {
               {isLoading ? 'Processing...' : isLogin ? 'Sign In' : 'Create Account'}
               {!isLoading && <ArrowRight size={18} />}
             </button>
+
+            <div className="relative my-2 flex items-center justify-center">
+              <div className="border-t border-gray-100 w-full"></div>
+              <span className="bg-white px-3 text-xs text-gray-400 font-semibold uppercase tracking-wider">or</span>
+              <div className="border-t border-gray-100 w-full"></div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                const demoUser = {
+                  token: 'demo_token_' + Date.now(),
+                  userId: 'demo_farmer',
+                  username: 'Demo Farmer'
+                };
+                localStorage.setItem('kisansathi_token', demoUser.token);
+                localStorage.setItem('kisansathi_userId', demoUser.userId);
+                localStorage.setItem('kisansathi_username', demoUser.username);
+                onLoginSuccess(demoUser);
+              }}
+              className="w-full bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-2xl py-3.5 font-bold flex items-center justify-center gap-2 transition-all shadow-sm"
+            >
+              🌱 Explore as Guest (Instant Access)
+            </button>
           </form>
 
           <p className="text-center mt-8 text-gray-400 text-sm">

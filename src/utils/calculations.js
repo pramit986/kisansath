@@ -20,11 +20,6 @@ const npkRequirements = {
   Maize: { N: 3.0, P: 1.5, K: 1.8 },
 };
 
-// Cost per day per acre in INR
-const laborCosts = {
-  Rice: 450, Wheat: 350, Cotton: 400, Sugarcane: 500,
-  Vegetables: 600, Soybean: 300, Maize: 350,
-};
 
 // Expected yield in quintals per acre
 const expectedYields = {

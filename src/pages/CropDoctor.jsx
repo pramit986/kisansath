@@ -90,7 +90,7 @@ Rules:
       const final = [...updatedMessages, aiMsg];
       setMessages(final);
       saveMessages(final);
-    } catch (err) {
+    } catch {
       const errorMsg = {
         role: 'assistant',
         content: `⚠️ I'm having trouble connecting right now. As a general tip for your ${profile.crop}: ensure proper irrigation and monitor crop health daily. Try again in a moment!`,

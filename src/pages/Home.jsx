@@ -69,19 +69,12 @@ export default function HomePage({ profile, onOpenSettings, onNavigate }) {
   const [weatherError, setWeatherError] = useState(false);
   const [recentQuestions, setRecentQuestions] = useState([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [showQuickOnboarding, setShowQuickOnboarding] = useState(false);
 
   const today = new Date();
   const dateStr = today.toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
   const tip = profile ? getDailyTip(profile.crop) : t('home.connectCrops');
 
-  useEffect(() => {
-    const q = JSON.parse(localStorage.getItem('kisansathi_recent_questions') || '[]');
-    setRecentQuestions(q.slice(0, 3));
-    fetchWeather();
-  }, [profile]); // Refresh when profile is set
-
-  const fetchWeather = async () => {
+  const fetchWeather = React.useCallback(async () => {
     setWeatherLoading(true);
     setWeatherError(false);
     try {
@@ -101,14 +94,20 @@ export default function HomePage({ profile, onOpenSettings, onNavigate }) {
         rainChance: parseInt(hourly?.chanceofrain || hourly?.chanceOfRain || 20),
         uvIndex: parseInt(current?.uvIndex || 5),
       });
-    } catch (e) {
+    } catch {
       setWeather({ temp: 28, desc: 'Partly Cloudy', humidity: 65, windKmph: 12, rainChance: 20, visibility: 10 });
       setWeatherError(true);
     } finally {
       setWeatherLoading(false);
       setIsRefreshing(false);
     }
-  };
+  }, [profile?.village]);
+
+  useEffect(() => {
+    const q = JSON.parse(localStorage.getItem('kisansathi_recent_questions') || '[]');
+    setRecentQuestions(q.slice(0, 3));
+    fetchWeather();
+  }, [profile, fetchWeather]); // Refresh when profile is set
 
   const handleRefresh = () => {
     setIsRefreshing(true);
@@ -338,7 +337,7 @@ function WeatherStat({ icon, label, value }) {
   );
 }
 
-function StatCard({ id, emoji, label, value, unit, color, bg }) {
+function StatCard({ id, emoji, label, value, unit, color }) {
   return (
     <div id={id} className="card card-hover animate-count-up p-5">
       <div className="flex items-start justify-between mb-3">
