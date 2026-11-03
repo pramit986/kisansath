@@ -15,7 +15,7 @@ export default function AuthPage({ onLoginSuccess }) {
 
     try {
       const endpoint = isLogin ? '/api/auth/login' : '/api/auth/register';
-      const { data } = await axios.post(`http://127.0.0.1:5000${endpoint}`, formData);
+      const { data } = await axios.post(`https://kisansathi-api-g3ezfdh5djd2bchz.uaenorth-01.azurewebsites.net${endpoint}`, formData);
       
       // Store token
       localStorage.setItem('kisansathi_token', data.token);

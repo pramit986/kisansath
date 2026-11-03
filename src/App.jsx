@@ -11,7 +11,7 @@ import SettingsDrawer from './pages/Settings';
 import axios from 'axios';
 import { Leaf } from 'lucide-react';
 
-const PROFILE_API = 'http://127.0.0.1:5000/api/profile';
+const PROFILE_API = 'https://kisansathi-api-g3ezfdh5djd2bchz.uaenorth-01.azurewebsites.net/api/profile';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('home');
